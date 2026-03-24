@@ -1,13 +1,54 @@
 const db = require('./init')
+// Academic years, classes, sections, students, fee structures, fee types, payments, payment details, receipts tables creation
+db.run(`
+  CREATE TABLE IF NOT EXISTS academic_years (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year_name TEXT NOT NULL,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    is_active INTEGER DEFAULT 1,
+    UNIQUE(year_name)
+  )
+`)
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS enrollment (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL,
+    class_id INTEGER NOT NULL,
+    section_id INTEGER NOT NULL,
+    academic_year_id INTEGER NOT NULL,
+    enrollment_date TEXT NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+    FOREIGN KEY (academic_year_id) REFERENCES academics(id) ON DELETE CASCADE
+  )
+`)
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS classes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_name TEXT NOT NULL, 
+    UNIQUE(class_name)
+  )
+`)
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS sections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+    class_id INTEGER NOT NULL,
+    section_name TEXT NOT NULL,
+    UNIQUE(class_id, section_name),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+  )
+`)
 
 
 db.run(`
  
   CREATE TABLE IF NOT EXISTS students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    class TEXT,
-    section TEXT,
-    session TEXT,
     roll_no INTEGER,
     sr_no INTEGER,
     name TEXT,
@@ -24,8 +65,9 @@ db.run(`
     aadhar_no TEXT,
     transport TEXT,
     fee_id INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (fee_id) REFERENCES fee_structure(id),
-    UNIQUE(class, section, session, roll_no)
+    UNIQUE(roll_no, sr_no)
   )
 `);
 
@@ -34,17 +76,63 @@ db.run(`
   
   CREATE TABLE IF NOT EXISTS fee_structure (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    class TEXT NOT NULL,
-    session TEXT NOT NULL, 
-    new_admission_fee REAL DEFAULT 0.0,
-    renewal_fee REAL DEFAULT 0.0,
-    id_report_fee REAL DEFAULT 0.0,
-    registration_fee REAL DEFAULT 0.0,
-    tuition_fee REAL DEFAULT 0.0,
-    transport_fee REAL DEFAULT 0.0,
-    term_fee REAL DEFAULT 0.0,
-    exam_fee REAL DEFAULT 0.0,
-    other_fee REAL DEFAULT 0.0,
-    UNIQUE(class, session)
+    class_id INTEGER,
+    fee_type_id INTEGER,
+    academic_year_id INTEGER,
+    amount REAL,
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (fee_type_id) REFERENCES fee_types(id) ON DELETE CASCADE,
+    FOREIGN KEY (academic_year_id) REFERENCES academics(id) ON DELETE CASCADE,
+    UNIQUE(class_id, fee_type_id, academic_year_id)
+    
+    )
+  `);
+
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS fee_types (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      fee_type_name TEXT NOT NULL UNIQUE,
+      frequency TEXT NOT NULL
+    )
+  `);
+
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      payment_date TEXT NOT NULL,
+      fee_structure_id INTEGER NOT NULL,
+      total_amount REAL NOT NULL,
+      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+      FOREIGN KEY (fee_structure_id) REFERENCES fee_structure(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS payment_details(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      payment_id INTEGER NOT NULL,
+      fee_type_id INTEGER NOT NULL,
+      amount REAL NOT NULL,
+      FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+      FOREIGN KEY (fee_type_id) REFERENCES fee_types(id) ON DELETE CASCADE
+    )
+  `)
+
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS receipts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      payment_id INTEGER NOT NULL,
+      receipt_no TEXT NOT NULL UNIQUE,
+      receipt_date TEXT NOT NULL,
+      total_amount REAL NOT NULL,
+      payment_method TEXT NOT NULL,
+      remarks TEXT,
+      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
     )
   `)
