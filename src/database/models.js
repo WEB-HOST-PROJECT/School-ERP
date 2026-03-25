@@ -17,12 +17,14 @@ db.run(`
     student_id INTEGER NOT NULL,
     class_id INTEGER NOT NULL,
     section_id INTEGER NOT NULL,
+    roll_no INTEGER NOT NULL,
     academic_year_id INTEGER NOT NULL,
     enrollment_date TEXT NOT NULL,
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
-    FOREIGN KEY (academic_year_id) REFERENCES academics(id) ON DELETE CASCADE
+    FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
+    UNIQUE(class_id, section_id, roll_no, academic_year_id)
   )
 `)
 
@@ -49,13 +51,11 @@ db.run(`
  
   CREATE TABLE IF NOT EXISTS students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    roll_no INTEGER,
-    sr_no INTEGER,
-    name TEXT,
-    gender TEXT,
+    name TEXT NOT NULL,
+    gender TEXT NOT NULL,
     dob TEXT,
     category TEXT,
-    father_name TEXT,
+    father_name TEXT NOT NULL,
     mother_name TEXT,
     address TEXT,
     house_name TEXT,
@@ -67,7 +67,7 @@ db.run(`
     fee_id INTEGER,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (fee_id) REFERENCES fee_structure(id),
-    UNIQUE(roll_no, sr_no)
+    UNIQUE(pen_no)
   )
 `);
 
@@ -82,7 +82,7 @@ db.run(`
     amount REAL,
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (fee_type_id) REFERENCES fee_types(id) ON DELETE CASCADE,
-    FOREIGN KEY (academic_year_id) REFERENCES academics(id) ON DELETE CASCADE,
+    FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
     UNIQUE(class_id, fee_type_id, academic_year_id)
     
     )

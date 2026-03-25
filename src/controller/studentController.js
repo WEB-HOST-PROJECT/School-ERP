@@ -2,14 +2,14 @@
 const db = require("../database/init")
 
 exports.addStudent = (req, res) => {
-  const { className, section, session, roll_no, sr_no, name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id } = req.body;
-  const sql = "INSERT INTO students (class,section, session, roll_no, sr_no, name, gender, dob, category, father_name, mother_name, address, house_name, pen_no,certificate,contact_no,aadhar_no,transport, fee_id ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  db.run(sql, [className, section, session, roll_no, sr_no, name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id], (err) => {
+  const {name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id } = req.body;
+  const sql = "INSERT INTO students (name, gender, dob, category, father_name, mother_name, address, house_name, pen_no,certificate,contact_no,aadhar_no,transport, fee_id ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  db.run(sql, [name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id], (err) => {
     if (err) {
 
       if (err.code === "SQLITE_CONSTRAINT") {
-        console.log("Roll number already exists in this class");
-        return res.status(409).json({ err: "Roll number already exists in this class" });
+        console.log("Pen number already exists in this class");
+        return res.status(409).json({ err: "Pen number already exists in this class" });
       } else {
         console.log(err);
         return res.status(500).json({ err: "Internal Server Error" });
@@ -50,9 +50,9 @@ exports.getStudentById = (req, res) => {
 
 exports.updateStudent = (req, res) => {
   const studentId = req.params.id
-  const { className, section, session , roll_no, sr_no, name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id } = req.body;
-  const sql = "UPDATE students SET class = ?, section = ?, session = ?, roll_no = ?, sr_no = ?, name = ?, gender = ?, dob = ?, category = ?, father_name = ?, mother_name = ?, address = ?, house_name = ?, pen_no = ?, certificate = ?, contact_no = ?, aadhar_no = ?, transport = ?, fee_id = ? WHERE id = ?"
-  db.run(sql, [className, section, session, roll_no, sr_no, name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id, studentId], function (err) {
+  const {name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id } = req.body;
+  const sql = "UPDATE students SET name = ?, gender = ?, dob = ?, category = ?, father_name = ?, mother_name = ?, address = ?, house_name = ?, pen_no = ?, certificate = ?, contact_no = ?, aadhar_no = ?, transport = ?, fee_id = ? WHERE id = ?"
+  db.run(sql, [name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id, studentId], function (err) {
     if (err) {
       console.log(err);
       return res.status(500).json({ err: "Internal Server Error" });

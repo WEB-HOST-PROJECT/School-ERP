@@ -13,6 +13,8 @@ app.get('/', (req, res) => {
 app.use('/students', require('./routes/studentRoutes'))
 app.use('/fee/structures', require('./routes/feeStructureRoutes'))
 app.use('/academics', require('./routes/academicRoutes'))
-// app.use('/classes', require('./routes/classRoutes'))
+app.use('/classes', require('./routes/classAndSectionRoutes'))
+app.use('/fee/types', require('./routes/feeTypesRoutes'))
+app.use('/enrollments', require('./routes/enrollmentRoutes'))
 
 module.exports = app;

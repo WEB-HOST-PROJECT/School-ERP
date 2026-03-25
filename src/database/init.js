@@ -15,22 +15,18 @@ db.run(`PRAGMA foreign_keys = ON;`, (err) => {
   console.log('Foreign key support enabled.');
 });
 
-db.all(
-  `SELECT name FROM sqlite_master WHERE type='table'`,
-  (err, tables) => {
-    if (err) console.error(err);
-    else console.log(tables);
-  }
-);
+// db.all(
+//   `SELECT name FROM sqlite_master WHERE type='table'`,
+//   (err, tables) => {
+//     if (err) console.error(err);
+//     else console.log(tables);
+//   }
+// );
 
 
-// db.run(`DROP TABLE IF EXISTS students`, (err) => {
+// db.run(`DROP TABLE IF EXISTS enrollment`, (err) => {
 //   if (err) console.error(err);
-//   else console.log("students table dropped successfully");
-// });
-// db.run(`DROP TABLE IF EXISTS fee_structure`, (err) => {
-//   if (err) console.error(err);
-//   else console.log("fee_structure table dropped successfully");
+//   else console.log("enrollment table dropped successfully");
 // });
 
 
