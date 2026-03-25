@@ -24,7 +24,7 @@ db.run(`
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
     FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
-    UNIQUE(class_id, section_id, roll_no, academic_year_id)
+    UNIQUE(class_id, student_id, academic_year_id)
   )
 `)
 

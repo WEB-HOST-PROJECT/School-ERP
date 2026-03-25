@@ -4,7 +4,6 @@ const db = require('../database/init')
 const {
     addFeeStructure,
     getAllFeeStructures,
-    getFeeStructureByClassAndSession,
     updateFeeStructure,
     deleteFeeStructure
 } = require('../controller/feeStructureController')
@@ -13,7 +12,7 @@ const {
 // Get all fee structures
 router.get('/', getAllFeeStructures)
 // Get a fee structure by ID
-router.get('/find', getFeeStructureByClassAndSession)
+// router.get('/find', getFeeStructureByClassAndSession)
 // Add a new fee structure
 router.post('/', addFeeStructure)
 // // Update a fee structure

@@ -2,9 +2,9 @@ const e = require("express");
 const db = require("../database/init")
 
 exports.addFeeStructure = (req, res) => {
-    const { className, session, newAddmissionFee, renewalFee, idReportFee, registrationFee, tuitionFee, transportFee, termFee, examFee, otherFee } = req.body;
-    const sql = "INSERT INTO fee_structure (class,session,new_admission_fee,renewal_fee,id_report_fee,registration_fee,tuition_fee,transport_fee,term_fee,exam_fee,other_fee) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
-    db.run(sql, [className, session, newAddmissionFee, renewalFee, idReportFee, registrationFee, tuitionFee, transportFee, termFee, examFee, otherFee], (err) => {
+    const { class_id, fee_type_id, academic_year_id, amount } = req.body;
+    const sql = "INSERT INTO fee_structure (class_id, fee_type_id, academic_year_id, amount) VALUES (?,?,?,?)";
+    db.run(sql, [class_id, fee_type_id, academic_year_id, amount], (err) => {
         if (err) {
             if (err.code === "SQLITE_CONSTRAINT") {
                 console.log("Fee structure for this class and session already exists");
@@ -58,9 +58,9 @@ exports.getFeeStructureByClassAndSession = (req, res) => {
 
 exports.updateFeeStructure = (req, res) => {
     feeStructureId = req.params.id
-    const { className, session, newAddmissionFee, renewalFee, idReportFee, registrationFee, tuitionFee, transportFee, termFee, examFee, otherFee } = req.body;
-    const sql = "UPDATE fee_structure SET class = ?, session = ?, new_admission_fee = ?, renewal_fee = ?, id_report_fee = ?, registration_fee = ?, tuition_fee = ?, transport_fee = ?, term_fee = ?, exam_fee = ?, other_fee = ? WHERE id = ?"
-    db.run(sql, [className, session, newAddmissionFee, renewalFee, idReportFee, registrationFee, tuitionFee, transportFee, termFee, examFee, otherFee, feeStructureId], function (err) {
+    const { class_id, fee_type_id, academic_year_id, amount } = req.body;
+    const sql = "UPDATE fee_structure SET class_id = ?, fee_type_id = ?, academic_year_id = ?, amount = ? WHERE id = ?"
+    db.run(sql, [class_id, fee_type_id, academic_year_id, amount, feeStructureId], function (err) {
         if (err) {
             console.log(err)
             return res.status(500).json({
