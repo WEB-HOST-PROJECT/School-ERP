@@ -1,16 +1,15 @@
-import React from 'react'
-import axios from 'axios'
-import { useState, useEffect } from 'react'
-import Header from './components/Header'
-import AsideBar from './components/AsideBar'
+import React from "react";
+import Header from "./components/Header";
+import AsideBar from "./components/AsideBar";
+import { Routes, Route } from "react-router-dom";
+
 
 const App = () => {
-  return(
-    <> 
-    <Header />
-    <AsideBar />
-    </>
-  )
-}
+  return (
+    <div className="h-screen w-full bg-amber-200">
+      <AsideBar />
+    </div>
+  );
+};
 
-export default App
+export default App;
