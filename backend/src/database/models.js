@@ -20,10 +20,14 @@ db.run(`
     roll_no INTEGER NOT NULL,
     academic_year_id INTEGER NOT NULL,
     enrollment_date TEXT NOT NULL,
+    transport TEXT DEFAULT 'no',
+    admission_type TEXT DEFAULT 'fresh',
+    transport_id INTEGER,
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
     FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
+    FOREIGN KEY (transport_id) REFERENCES transport(id) ON DELETE SET NULL,
     UNIQUE(class_id, student_id, academic_year_id)
   )
 `)
@@ -63,11 +67,10 @@ db.run(`
     certificate TEXT,
     contact_no TEXT,
     aadhar_no TEXT,
-    transport TEXT,
-    fee_id INTEGER,
+    email TEXT,
+    status TEXT DEFAULT 'active',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (fee_id) REFERENCES fee_structure(id),
-    UNIQUE(pen_no)
+    UNIQUE(aadhar_no)
   )
 `);
 
@@ -89,7 +92,7 @@ db.run(`
   `);
 
 
-  db.run(`
+db.run(`
     CREATE TABLE IF NOT EXISTS fee_types (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       fee_type_name TEXT NOT NULL UNIQUE,
@@ -98,12 +101,11 @@ db.run(`
   `);
 
 
-  db.run(`
+db.run(`
     CREATE TABLE IF NOT EXISTS payments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL,
       payment_date TEXT NOT NULL,
-      fee_structure_id INTEGER NOT NULL,
       total_amount REAL NOT NULL,
       timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
@@ -111,19 +113,19 @@ db.run(`
     )
   `);
 
-  db.run(`
+db.run(`
     CREATE TABLE IF NOT EXISTS payment_details(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       payment_id INTEGER NOT NULL,
-      fee_type_id INTEGER NOT NULL,
+      fee_structure_id INTEGER NOT NULL,
       amount REAL NOT NULL,
       FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
-      FOREIGN KEY (fee_type_id) REFERENCES fee_types(id) ON DELETE CASCADE
+      FOREIGN KEY (fee_structure_id) REFERENCES fee_structure(id) ON DELETE CASCADE
     )
   `)
 
 
-  db.run(`
+db.run(`
     CREATE TABLE IF NOT EXISTS receipts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       payment_id INTEGER NOT NULL,
@@ -134,5 +136,14 @@ db.run(`
       remarks TEXT,
       timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+    )
+  `)
+
+db.run(`
+    CREATE TABLE IF NOT EXISTS transport (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      route_no TEXT NOT NULL UNIQUE,
+      route_name TEXT NOT NULL,
+      amount REAL NOT NULL
     )
   `)

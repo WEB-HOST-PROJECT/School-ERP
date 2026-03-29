@@ -2,9 +2,9 @@ const db = require('../database/init')
 
 // Add Enrollment
 exports.addEnrollment = (req, res) => {
-    const { student_id, class_id, section_id, roll_no, academic_year_id} = req.body
-    const query = `INSERT INTO enrollment (student_id, class_id, section_id, roll_no, academic_year_id, enrollment_date) VALUES (?, ?, ?, ?, ?, datetime('now'))`
-    db.run(query, [student_id, class_id, section_id, roll_no, academic_year_id], function (err) {
+    const { student_id, class_id, section_id, roll_no, academic_year_id, transport, admission_type, transport_id } = req.body
+    const query = `INSERT INTO enrollment (student_id, class_id, section_id, roll_no, academic_year_id, transport, admission_type, transport_id, enrollment_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+    db.run(query, [student_id, class_id, section_id, roll_no, academic_year_id, transport || 'no', admission_type || 'fresh', transport_id || null], function (err) {
         if (err) {
             if (err.code === "SQLITE_CONSTRAINT") {
                 console.log(err.message)
@@ -52,9 +52,9 @@ exports.getEnrollmentById = (req, res) => {
 // Update enrollment
 exports.updateEnrollment = (req, res) => {
     const { id } = req.params
-    const { student_id, class_id, section_id, roll_no, academic_year_id } = req.body
-    const query = `UPDATE enrollment SET student_id = ?, class_id = ?, section_id = ?, roll_no = ?, academic_year_id = ? WHERE id = ?`
-    db.run(query, [student_id, class_id, section_id, roll_no, academic_year_id, id], function (err) {
+    const { student_id, class_id, section_id, roll_no, academic_year_id, transport, admission_type, transport_id } = req.body
+    const query = `UPDATE enrollment SET student_id = ?, class_id = ?, section_id = ?, roll_no = ?, academic_year_id = ?, transport = ?, admission_type = ?, transport_id = ? WHERE id = ?`
+    db.run(query, [student_id, class_id, section_id, roll_no, academic_year_id, transport || 'no', admission_type || 'fresh', transport_id || null, id], function (err) {
         if (err) {
             if (err.code === "SQLITE_CONSTRAINT") {
                 console.log("Enrollment already exists for this student in this class and section for the academic year");
@@ -92,7 +92,7 @@ exports.deleteEnrollment = (req, res) => {
 // Get enrollment with student, class, section and academic year details by ID
 exports.getEnrollmentDetailsById = (req, res) => {
     const { id } = req.params
-    const query = `SELECT e.id, s.name AS student_name, c.class_name, sec.section_name, ay.year_name, e.roll_no, e.enrollment_date` +
+    const query = `SELECT e.id, s.name AS student_name, c.class_name, sec.section_name, ay.year_name, e.roll_no, e.transport, e.transport_id, e.admission_type, e.enrollment_date` +
         ` FROM enrollment e` +
         ` JOIN students s ON e.student_id = s.id` + 
         ` JOIN classes c ON e.class_id = c.id` +

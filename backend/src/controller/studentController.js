@@ -2,9 +2,9 @@
 const db = require("../database/init")
 
 exports.addStudent = (req, res) => {
-  const {name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id } = req.body;
-  const sql = "INSERT INTO students (name, gender, dob, category, father_name, mother_name, address, house_name, pen_no,certificate,contact_no,aadhar_no,transport, fee_id ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  db.run(sql, [name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id], (err) => {
+  const {name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, email, fee_id, status } = req.body;
+  const sql = "INSERT INTO students (name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, email, fee_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  db.run(sql, [name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, email, fee_id, status || 'active'], (err) => {
     if (err) {
 
       if (err.code === "SQLITE_CONSTRAINT") {
@@ -50,9 +50,9 @@ exports.getStudentById = (req, res) => {
 
 exports.updateStudent = (req, res) => {
   const studentId = req.params.id
-  const {name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id } = req.body;
-  const sql = "UPDATE students SET name = ?, gender = ?, dob = ?, category = ?, father_name = ?, mother_name = ?, address = ?, house_name = ?, pen_no = ?, certificate = ?, contact_no = ?, aadhar_no = ?, transport = ?, fee_id = ? WHERE id = ?"
-  db.run(sql, [name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, transport, fee_id, studentId], function (err) {
+  const {name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, email, fee_id, status } = req.body;
+  const sql = "UPDATE students SET name = ?, gender = ?, dob = ?, category = ?, father_name = ?, mother_name = ?, address = ?, house_name = ?, pen_no = ?, certificate = ?, contact_no = ?, aadhar_no = ?, email = ?, fee_id = ?, status = ? WHERE id = ?"
+  db.run(sql, [name, gender, dob, category, father_name, mother_name, address, house_name, pen_no, certificate, contact_no, aadhar_no, email, fee_id, status || 'active', studentId], function (err) {
     if (err) {
       console.log(err);
       return res.status(500).json({ err: "Internal Server Error" });

@@ -19,5 +19,7 @@ app.use('/academics', require('./routes/academicRoutes'))
 app.use('/classes', require('./routes/classAndSectionRoutes'))
 app.use('/fee/types', require('./routes/feeTypesRoutes'))
 app.use('/enrollments', require('./routes/enrollmentRoutes'))
+app.use('/payments', require('./routes/paymentRoutes'))
+app.use('/transport', require('./routes/transportRoutes'))
 
 module.exports = app;
