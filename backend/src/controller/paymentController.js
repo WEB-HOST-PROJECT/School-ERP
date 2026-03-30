@@ -179,6 +179,79 @@ const processMultiplePayments = (req, res) => {
     });
 };
 
+// Bulk payment of specific records with an optional custom total amount
+const processAdvancePayment = (req, res) => {
+    const { student_id, payment_date, payment_method, remarks, fee_record_ids, custom_amount } = req.body;
+
+    if (!student_id || !payment_date || !payment_method || !Array.isArray(fee_record_ids) || fee_record_ids.length === 0) {
+        return res.status(400).json({ error: 'Missing required fields or empty fee_record_ids' });
+    }
+
+    const placeholders = fee_record_ids.map(() => '?').join(',');
+    const fetchSql = `SELECT * FROM student_fee_records WHERE id IN (${placeholders}) AND student_id = ?`;
+
+    db.all(fetchSql, [...fee_record_ids, student_id], (err, records) => {
+        if (err) return res.status(500).json({ error: 'Failed to fetch fee records', details: err.message });
+        if (!records || records.length === 0) return res.status(404).json({ error: 'No valid fee records found' });
+
+        const payable = records.filter(r => r.status !== 'paid');
+        if (payable.length === 0) return res.status(400).json({ error: 'All selected records are already fully paid' });
+
+        const totalDue = payable.reduce((sum, r) => sum + (parseFloat(r.amount) - parseFloat(r.paid_amount || 0)), 0);
+        const amountToPay = custom_amount ? parseFloat(custom_amount) : totalDue;
+
+        db.serialize(() => {
+            db.run('BEGIN TRANSACTION');
+
+            const insertPayment = `INSERT INTO payments (student_id, payment_date, fee_structure_id, total_amount) VALUES (?, ?, ?, ?)`;
+            db.run(insertPayment, [student_id, payment_date, payable[0].fee_structure_id, amountToPay], function(payErr) {
+                if (payErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Failed to create payment', details: payErr.message }); }
+
+                const payment_id = this.lastID;
+                let remaining = amountToPay;
+                let completed = 0;
+                let failed = false;
+
+                payable.forEach((record) => {
+                    if (remaining <= 0) { completed++; return; } // Should not happen with validation but safe
+                    const due = parseFloat(record.amount) - parseFloat(record.paid_amount || 0);
+                    const paying = Math.min(remaining, due);
+                    remaining -= paying;
+
+                    const detailSql = `INSERT INTO payment_details (payment_id, student_fee_record_id, fee_structure_id, amount) VALUES (?, ?, ?, ?)`;
+                    db.run(detailSql, [payment_id, record.id, record.fee_structure_id, paying], function(detErr) {
+                        if (detErr && !failed) {
+                            failed = true; db.run('ROLLBACK');
+                            return res.status(500).json({ error: 'Detail insertion failed', details: detErr.message });
+                        }
+
+                        const new_paid = parseFloat(record.paid_amount || 0) + paying;
+                        const new_status = new_paid >= parseFloat(record.amount) ? 'paid' : 'partial';
+                        db.run(`UPDATE student_fee_records SET paid_amount = ?, status = ? WHERE id = ?`, [new_paid, new_status, record.id], (updErr) => {
+                            if (updErr && !failed) {
+                                failed = true; db.run('ROLLBACK');
+                                return res.status(500).json({ error: 'Record update failed', details: updErr.message });
+                            }
+                            completed++;
+                            if (completed === payable.length && !failed) {
+                                const receipt_no = 'ADV-' + Date.now() + Math.floor(Math.random() * 1000);
+                                db.run(`INSERT INTO receipts (payment_id, receipt_no, receipt_date, total_amount, payment_method, remarks) VALUES (?, ?, ?, ?, ?, ?)`,
+                                    [payment_id, receipt_no, payment_date, amountToPay, payment_method, remarks || 'Advance Payment'],
+                                    (recErr) => {
+                                        if (recErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Receipt failed' }); }
+                                        db.run('COMMIT');
+                                        res.status(201).json({ message: 'Advance payment successful', payment_id, receipt_no });
+                                    }
+                                );
+                            }
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
+
 // Smart Allocation — distributes a lump sum sequentially across OLDEST unpaid dues first (FIFO)
 const processSmartAllocation = (req, res) => {
     const { student_id, payment_date, payment_method, remarks, total_amount } = req.body;

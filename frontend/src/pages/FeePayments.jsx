@@ -34,7 +34,16 @@ const FeePayments = () => {
     const [isLoadingAdvRecords, setIsLoadingAdvRecords] = useState(false);
     const [isAdvPaying, setIsAdvPaying] = useState(false);
 
-    // Single payment form state
+    // Smart Pay state
+    const [isSmartPayOpen, setIsSmartPayOpen] = useState(false);
+    const [smartAmount, setSmartAmount] = useState('');
+    const [smartMethod, setSmartMethod] = useState('cash');
+    const [smartRemarks, setSmartRemarks] = useState('');
+    const [isSmartPaying, setIsSmartPaying] = useState(false);
+
+    // Reporting state
+    const [summary, setSummary] = useState({ total_expected: 0, total_collected: 0, total_pending: 0 });
+
     const [formData, setFormData] = useState({
         student_id: '',
         fee_structure_id: '',
@@ -46,14 +55,15 @@ const FeePayments = () => {
 
     const fetchData = async () => {
         try {
-            const [payRes, stuRes, fsRes, ftRes, clsRes, recordsRes, dueRes] = await Promise.all([
+            const [payRes, stuRes, fsRes, ftRes, clsRes, recordsRes, dueRes, summaryRes] = await Promise.all([
                 API.get('/payments'),
                 API.get('/students'),
                 API.get('/fee/structures'),
                 API.get('/fee/types'),
                 API.get('/classes/class'),
                 API.get('/student-fees/all'),
-                API.get('/student-fees/due')
+                API.get('/student-fees/due'),
+                API.get('/fee-reports/summary')
             ]);
             setPayments(payRes.data);
             setStudents(stuRes.data);
@@ -62,6 +72,7 @@ const FeePayments = () => {
             setClasses(clsRes.data);
             setFeeRecords(recordsRes.data);
             setDueRecords(dueRes.data);
+            setSummary(summaryRes.data);
         } catch (err) {
             toast.error("Failed to load necessary data");
             console.error(err);
@@ -100,6 +111,31 @@ const FeePayments = () => {
             toast.error('Failed to load student fee records');
         } finally {
             setIsLoadingAdvRecords(false);
+        }
+    };
+
+    const handleSmartPay = async () => {
+        if (!advSelectedStudent) return toast.error('Select a student first');
+        if (!smartAmount || parseFloat(smartAmount) <= 0) return toast.error('Enter a valid amount');
+        setIsSmartPaying(true);
+        try {
+            const res = await API.post('/payments/smart-allocate', {
+                student_id: advSelectedStudent.id,
+                payment_date: new Date().toISOString().split('T')[0],
+                payment_method: smartMethod,
+                remarks: smartRemarks,
+                total_amount: parseFloat(smartAmount)
+            });
+            toast.success(`⚡ ${res.data.message} | Receipt: ${res.data.receipt_no}`);
+            setIsSmartPayOpen(false);
+            setSmartAmount('');
+            setSmartRemarks('');
+            fetchStudentRecords(advSelectedStudent);
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Smart allocation failed');
+        } finally {
+            setIsSmartPaying(false);
         }
     };
 
@@ -234,6 +270,37 @@ const FeePayments = () => {
                     </button>
                 </div>
             </header>
+
+            {/* Quick Summary Dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="bg-gray-900/40 border border-emerald-500/25 rounded-2xl p-4 backdrop-blur-xl flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                        <CheckCircle className="text-emerald-500" size={24} />
+                    </div>
+                    <div>
+                        <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">Total Collection</p>
+                        <p className="text-2xl font-bold text-white">₹{summary.total_collected?.toLocaleString()}</p>
+                    </div>
+                </div>
+                <div className="bg-gray-900/40 border border-rose-500/25 rounded-2xl p-4 backdrop-blur-xl flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
+                        <CreditCard className="text-rose-500" size={24} />
+                    </div>
+                    <div>
+                        <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">Total Pending</p>
+                        <p className="text-2xl font-bold text-white">₹{summary.total_pending?.toLocaleString()}</p>
+                    </div>
+                </div>
+                <div className="bg-gray-900/40 border border-violet-500/25 rounded-2xl p-4 backdrop-blur-xl flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center border border-violet-500/20">
+                        <Zap className="text-violet-500" size={24} />
+                    </div>
+                    <div>
+                        <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">Estimated Revenue</p>
+                        <p className="text-2xl font-bold text-white">₹{summary.total_expected?.toLocaleString()}</p>
+                    </div>
+                </div>
+            </div>
 
             <div className="flex-1 flex flex-col bg-gray-900/40 rounded-2xl border border-gray-800/50 backdrop-blur-xl overflow-hidden">
                 {/* Tab bar + search */}
@@ -473,12 +540,17 @@ const FeePayments = () => {
                                                     className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-violet-500 w-32"
                                                 />
                                                 <button
+                                                    onClick={() => setIsSmartPayOpen(true)}
+                                                    className="flex items-center gap-1.5 px-4 py-1.5 bg-violet-500/10 border border-violet-500/30 hover:bg-violet-500/20 text-violet-400 rounded-lg text-sm font-bold transition-all shadow-md shadow-violet-500/10"
+                                                >
+                                                    <Zap size={13} fill="currentColor" /> Smart Pay
+                                                </button>
+                                                <button
                                                     onClick={handlePayAdvance}
                                                     disabled={isAdvPaying}
                                                     className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 rounded-lg text-white font-bold text-sm disabled:opacity-60 transition-all shadow-md shadow-violet-500/20"
                                                 >
-                                                    <Zap size={13} />
-                                                    {isAdvPaying ? 'Processing...' : `Pay Advance (${advSelectedIds.length})`}
+                                                    {isAdvPaying ? 'Processing...' : `Pay Selection (${advSelectedIds.length})`}
                                                 </button>
                                             </div>
                                         )}
@@ -595,6 +667,86 @@ const FeePayments = () => {
                     </div>
                 )}
             </div>
+
+            {/* Smart Pay Modal */}
+            {isSmartPayOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                    <div className="bg-gray-900 border border-gray-800 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl relative">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-violet-500/20 flex items-center justify-center border border-violet-500/30">
+                                        <Zap size={20} className="text-violet-500" fill="currentColor" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">Smart Allocate</h3>
+                                        <p className="text-xs text-gray-500">Auto-distribute payment across dues (FIFO)</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setIsSmartPayOpen(false)} className="text-gray-500 hover:text-white transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-5">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Student</label>
+                                    <div className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-white font-medium flex items-center gap-3">
+                                        <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center">
+                                            <User size={12} className="text-violet-400" />
+                                        </div>
+                                        {advSelectedStudent?.name || "Select a student first"}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Amount (₹)</label>
+                                        <input
+                                            type="number"
+                                            value={smartAmount}
+                                            onChange={e => setSmartAmount(e.target.value)}
+                                            placeholder="Enter amount"
+                                            className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-white outline-none focus:border-violet-500 transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Method</label>
+                                        <select
+                                            value={smartMethod}
+                                            onChange={e => setSmartMethod(e.target.value)}
+                                            className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-white outline-none focus:border-violet-500 transition-all appearance-none"
+                                        >
+                                            <option value="cash">Cash</option>
+                                            <option value="online">Online</option>
+                                            <option value="check">Check</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Remarks</label>
+                                    <textarea
+                                        value={smartRemarks}
+                                        onChange={e => setSmartRemarks(e.target.value)}
+                                        placeholder="Add notes..."
+                                        rows={2}
+                                        className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-white outline-none focus:border-violet-500 transition-all resize-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleSmartPay}
+                                disabled={isSmartPaying || !smartAmount}
+                                className="w-full mt-8 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:from-gray-800 disabled:to-gray-800 disabled:text-gray-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-violet-500/20 transition-all flex items-center justify-center gap-2"
+                            >
+                                {isSmartPaying ? "Processing Allocation..." : "⚡ Confirm Smart Payment"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Single Payment Modal */}
             {isModalOpen && (

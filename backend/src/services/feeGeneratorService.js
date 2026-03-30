@@ -49,12 +49,18 @@ const everyNthMonth = (months, n) => months.filter((_, i) => i % n === 0);
 // ── Core insert (idempotent) ─────────────────────────────────────────────────
 
 const insertFeeRecord = (student_id, fee_structure_id, month, amount, academic_year_id, due_date) => {
+    const finalDueDate = due_date || dueDateForLabel(month);
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Mark as 'due' if past date, otherwise 'upcoming'
+    const initialStatus = (finalDueDate < today) ? 'due' : 'upcoming';
+
     const sql = `
         INSERT OR IGNORE INTO student_fee_records
             (student_id, fee_structure_id, month, due_date, amount, paid_amount, status, academic_year_id)
-        VALUES (?, ?, ?, ?, ?, 0, 'pending', ?)
+        VALUES (?, ?, ?, ?, ?, 0, ?, ?)
     `;
-    db.run(sql, [student_id, fee_structure_id, month, due_date || dueDateForLabel(month), amount, academic_year_id], (err) => {
+    db.run(sql, [student_id, fee_structure_id, month, finalDueDate, amount, initialStatus, academic_year_id], (err) => {
         if (err) console.error(`[FeeService] Insert error s:${student_id} fs:${fee_structure_id} m:${month}:`, err.message);
     });
 };
