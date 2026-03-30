@@ -105,6 +105,7 @@ db.run(`
     CREATE TABLE IF NOT EXISTS payments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL,
+      fee_structure_id INTEGER NOT NULL,
       payment_date TEXT NOT NULL,
       total_amount REAL NOT NULL,
       timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -117,9 +118,11 @@ db.run(`
     CREATE TABLE IF NOT EXISTS payment_details(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       payment_id INTEGER NOT NULL,
+      student_fee_record_id INTEGER,
       fee_structure_id INTEGER NOT NULL,
       amount REAL NOT NULL,
       FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+      FOREIGN KEY (student_fee_record_id) REFERENCES student_fee_records(id) ON DELETE SET NULL,
       FOREIGN KEY (fee_structure_id) REFERENCES fee_structure(id) ON DELETE CASCADE
     )
   `)
@@ -147,3 +150,26 @@ db.run(`
       amount REAL NOT NULL
     )
   `)
+
+db.run(`
+    CREATE TABLE IF NOT EXISTS student_fee_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL,
+    fee_structure_id INTEGER NOT NULL,
+    month TEXT NOT NULL,  
+    due_date TEXT,
+    amount REAL NOT NULL,
+    paid_amount REAL DEFAULT 0,
+    status TEXT DEFAULT 'pending', 
+    academic_year_id INTEGER,
+
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (fee_structure_id) REFERENCES fee_structure(id) ON DELETE CASCADE,
+    FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
+
+    UNIQUE(student_id, fee_structure_id, month, academic_year_id)
+  )
+    `)
+
+
+module.exports = db

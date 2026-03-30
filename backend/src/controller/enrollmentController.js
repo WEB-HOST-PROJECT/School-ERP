@@ -1,4 +1,5 @@
 const db = require('../database/init')
+const { assignFeesForEnrollment } = require('../services/feeGeneratorService')
 
 // Add Enrollment
 exports.addEnrollment = (req, res) => {
@@ -16,6 +17,9 @@ exports.addEnrollment = (req, res) => {
                 return res.status(500).json({ err: "Internal Server Error" })
             }
         }
+        // Auto-assign all applicable fee records for this enrollment
+        assignFeesForEnrollment(student_id, class_id, academic_year_id, transport_id || null);
+
         res.json({ message: "Enrollment added successfully" })
         console.log("Enrollment added successfully")
     })

@@ -33,17 +33,16 @@ exports.getAllFeeStructures = (req, res) => {
 }
 
 exports.getFeeStructureByClassAndSession = (req, res) => {
-    const { className } = req.query;
-    console.log(className);
-    if (!className) {
+    const { class_id, academic_year_id } = req.query;
+    if (!class_id || !academic_year_id) {
         return res.status(400).json({
-            error: "Class name required"
+            error: "class_id and academic_year_id required"
         })
     }
 
-    const sql = "SELECT * FROM fee_structure WHERE class = ?"
+    const sql = "SELECT * FROM fee_structure WHERE class_id = ? AND academic_year_id = ?"
 
-    db.get(sql, [className], (err, feeStructure) => {
+    db.get(sql, [class_id, academic_year_id], (err, feeStructure) => {
         if (err) {
             console.log(err);
             return res.status(500).json({ err: "Internal Server Error" })
@@ -57,7 +56,7 @@ exports.getFeeStructureByClassAndSession = (req, res) => {
 
 
 exports.updateFeeStructure = (req, res) => {
-    feeStructureId = req.params.id
+    const feeStructureId = req.params.id
     const { class_id, fee_type_id, academic_year_id, amount } = req.body;
     const sql = "UPDATE fee_structure SET class_id = ?, fee_type_id = ?, academic_year_id = ?, amount = ? WHERE id = ?"
     db.run(sql, [class_id, fee_type_id, academic_year_id, amount, feeStructureId], function (err) {
@@ -79,7 +78,7 @@ exports.updateFeeStructure = (req, res) => {
 }
 
 exports.deleteFeeStructure = (req, res) => {
-    feeStructureId = req.params.id
+    const feeStructureId = req.params.id
     const sql = "DELETE FROM fee_structure WHERE id = ?"
     db.run(sql, [feeStructureId], function (err)  {
         if (err) {

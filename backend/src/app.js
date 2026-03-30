@@ -2,6 +2,9 @@ const express = require('express')
 const app = express()
 const db = require('./database/init')
 const cors = require('cors')
+const feeGeneratorService = require('./services/feeGeneratorService')
+
+feeGeneratorService.initScheduler();
 
 app.use(cors())
 
@@ -21,5 +24,6 @@ app.use('/fee/types', require('./routes/feeTypesRoutes'))
 app.use('/enrollments', require('./routes/enrollmentRoutes'))
 app.use('/payments', require('./routes/paymentRoutes'))
 app.use('/transport', require('./routes/transportRoutes'))
+app.use('/student-fees', require('./routes/studentFeeRoutes'))
 
 module.exports = app;

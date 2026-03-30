@@ -12,6 +12,8 @@ import Enrollments from './pages/Enrollments'
 import Academics from './pages/Academics'
 import FeeSetup from './pages/FeeSetup'
 
+import FeePayments from './pages/FeePayments'
+
 // Stubs for missing pages
 const Placeholder = ({ title }) => (
   <div className="flex h-full items-center justify-center">
@@ -43,7 +45,7 @@ const App = () => {
               <Route path='/dashboard' element={<Dashboard />} />
               <Route path='/students/*' element={<Students />} />
               <Route path='/fee-management' element={<FeeManagement />} />
-              <Route path='/fee-payments' element={<Placeholder title="Fee Payments" />} />
+              <Route path='/fee-payments' element={<FeePayments />} />
               <Route path='/enrollments' element={<Enrollments />} />
               <Route path='/academic' element={<Academics />} />
               <Route path='/fee-structure' element={<FeeSetup />} />
