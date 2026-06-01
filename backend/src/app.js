@@ -24,7 +24,9 @@ feeGeneratorService.initScheduler();
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || '*',
+  origin: ['https://school-erp-edu.vercel.app', 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
   optionsSuccessStatus: 200
 }
 app.use(cors(corsOptions))

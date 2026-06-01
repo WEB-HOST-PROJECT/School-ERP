@@ -1,26 +1,15 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const fs = require('fs');
 
-const isProduction = process.env.NODE_ENV === 'production';
-const dbPath = isProduction 
-  ? '/var/data/StudentDatabase.db' 
-  : path.resolve(__dirname, '../../StudentDatabase.db');
-
-// Ensure directory exists for production
-if (isProduction && !fs.existsSync('/var/data')) {
-  try {
-    fs.mkdirSync('/var/data', { recursive: true });
-  } catch (err) {
-    console.error('Error creating directory /var/data:', err);
-  }
-}
+// Use a local path for the database file within the backend directory.
+// This works on both local (Windows/Mac) and Render Free Plan (Linux).
+const dbPath = path.resolve(__dirname, '../../StudentDatabase.db');
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Database connection error:', err.message);
   } else {
-    console.log(`Connected to the SQLite database at ${dbPath}`);
+    console.log(`Connected to the SQLite database at: ${dbPath}`);
   }
 });
 

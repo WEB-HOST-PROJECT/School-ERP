@@ -28,13 +28,10 @@ Add the following in the **Environment** tab:
 - `PORT`: `5000`
 - `FRONTEND_URL`: `https://your-frontend.vercel.app` (Update after frontend deployment)
 
-### Step 4: Configure Persistent Disk (Crucial for SQLite)
-1. Go to the **Disks** tab in your Render service settings.
-2. Click **Add Disk**.
-3. **Name**: `sqlite-data`
-4. **Mount Path**: `/var/data`
-5. **Size**: `1 GB` (or as needed)
-6. **Note**: This ensures your `StudentDatabase.db` survives redeploys.
+### Step 4: Database Note (Render Free Plan)
+- **Note**: Render's Free Plan has an **ephemeral filesystem**. This means your `StudentDatabase.db` will be **wiped/reset** every time the server restarts or you redeploy.
+- For permanent storage on Render, you would normally need a **Paid Web Service** and a **Persistent Disk**.
+- However, for the Free Plan, the database will now reside in the local project directory and initialize automatically on every startup.
 
 ---
 
