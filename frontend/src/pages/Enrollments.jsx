@@ -161,9 +161,9 @@ const Enrollments = () => {
                         className="w-full bg-gray-900/50 border border-gray-700 rounded-xl pl-10 pr-4 py-2 text-white outline-none focus:border-cyan-500 transition-colors"
                     />
                 </div>
-                
-                <select 
-                    value={filterClass} 
+
+                <select
+                    value={filterClass}
                     onChange={e => setFilterClass(e.target.value)}
                     className="bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-2 text-white outline-none focus:border-cyan-500 transition-colors text-sm"
                 >
@@ -171,8 +171,8 @@ const Enrollments = () => {
                     {classes.map(c => <option key={c.id} value={c.id}>{c.class_name}</option>)}
                 </select>
 
-                <select 
-                    value={filterYear} 
+                <select
+                    value={filterYear}
                     onChange={e => setFilterYear(e.target.value)}
                     className="bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-2 text-white outline-none focus:border-cyan-500 transition-colors text-sm"
                 >
@@ -245,14 +245,14 @@ const Enrollments = () => {
                         </table>
                     </div>
                 )}
-                
+
                 {totalPages > 1 && (
                     <div className="flex items-center justify-between p-4 border-t border-gray-800/50 bg-gray-900/20">
                         <span className="text-sm text-gray-400">
                             Showing <span className="text-white font-medium">{indexOfFirstItem + 1}</span> to <span className="text-white font-medium">{Math.min(indexOfLastItem, filteredEnrollments.length)}</span> of <span className="text-white font-medium">{filteredEnrollments.length}</span> entries
                         </span>
                         <div className="flex gap-2">
-                            <button 
+                            <button
                                 disabled={currentPage === 1}
                                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                 className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 disabled:opacity-50 hover:bg-gray-700 transition-colors"
@@ -260,7 +260,7 @@ const Enrollments = () => {
                                 Prev
                             </button>
                             <div className="flex items-center gap-1 hidden sm:flex">
-                                {Array.from({length: totalPages}, (_, i) => i + 1).map(page => (
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                                     <button
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
@@ -270,7 +270,7 @@ const Enrollments = () => {
                                     </button>
                                 ))}
                             </div>
-                            <button 
+                            <button
                                 disabled={currentPage === totalPages}
                                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                 className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 disabled:opacity-50 hover:bg-gray-700 transition-colors"
