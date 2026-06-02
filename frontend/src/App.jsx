@@ -11,8 +11,8 @@ import Enrollments from './pages/Enrollments'
 
 import Academics from './pages/Academics'
 import FeeSetup from './pages/FeeSetup'
-
 import FeePayments from './pages/FeePayments'
+import Receipts from './pages/Receipts'
 
 // Stubs for missing pages
 const Placeholder = ({ title }) => (
@@ -46,6 +46,7 @@ const App = () => {
               <Route path='/students/*' element={<Students />} />
               <Route path='/fee-management' element={<FeeManagement />} />
               <Route path='/fee-payments' element={<FeePayments />} />
+              <Route path='/receipts' element={<Receipts />} />
               <Route path='/enrollments' element={<Enrollments />} />
               <Route path='/academic' element={<Academics />} />
               <Route path='/fee-structure' element={<FeeSetup />} />

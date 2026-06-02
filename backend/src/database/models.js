@@ -132,15 +132,43 @@ db.run(`
     CREATE TABLE IF NOT EXISTS receipts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       payment_id INTEGER NOT NULL,
+      student_id INTEGER,
+      academic_year_id INTEGER,
       receipt_no TEXT NOT NULL UNIQUE,
       receipt_date TEXT NOT NULL,
       total_amount REAL NOT NULL,
       payment_method TEXT NOT NULL,
+      transaction_reference TEXT,
       remarks TEXT,
+      created_by TEXT,
       timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+      FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+      FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+      FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE
     )
   `)
+
+// Migration to add missing columns to existing receipts table
+db.serialize(() => {
+  const columnsToAdd = [
+    { name: 'student_id', type: 'INTEGER' },
+    { name: 'academic_year_id', type: 'INTEGER' },
+    { name: 'transaction_reference', type: 'TEXT' },
+    { name: 'created_by', type: 'TEXT' }
+  ];
+
+  columnsToAdd.forEach(col => {
+    db.run(`ALTER TABLE receipts ADD COLUMN ${col.name} ${col.type}`, (err) => {
+      if (err) {
+        if (err.message.includes('duplicate column name')) {
+          // Column already exists, ignore
+        } else {
+          console.error(`Error adding column ${col.name}: `, err.message);
+        }
+      }
+    });
+  });
+});
 
 db.run(`
     CREATE TABLE IF NOT EXISTS transport (

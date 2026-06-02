@@ -1,4 +1,25 @@
 const db = require('../database/init');
+const receiptService = require('../services/receiptService');
+
+const finalizeReceipt = async (pid, student_id, payment_date, total_amount, payment_method, remarks) => {
+    return new Promise((resolve, reject) => {
+        db.get('SELECT id FROM academic_years WHERE is_active = 1 LIMIT 1', [], async (err, ay) => {
+            if (err) return reject(err);
+            const ay_id = ay ? ay.id : null;
+            
+            try {
+                const receipt_no = await receiptService.generateReceiptNumber();
+                const insertReceiptSql = `INSERT INTO receipts (payment_id, student_id, academic_year_id, receipt_no, receipt_date, total_amount, payment_method, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                db.run(insertReceiptSql, [pid, student_id, ay_id, receipt_no, payment_date, total_amount, payment_method, remarks], function(errReceipt) {
+                    if (errReceipt) return reject(errReceipt);
+                    resolve(receipt_no);
+                });
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+};
 
 const createPayment = (req, res) => {
     const { student_id, payment_date, fee_structure_id, total_amount, payment_method, remarks, payment_details } = req.body;
@@ -23,40 +44,35 @@ const createPayment = (req, res) => {
             let detailsInserted = 0;
             let hasError = false;
 
-            if (payment_details.length === 0) {
-                // If no details, proceed to receipt
-                createReceipt(payment_id);
-            }
-
-            payment_details.forEach((detail, index) => {
-                db.run(insertDetailSql, [payment_id, detail.fee_structure_id, detail.amount], function(errDetail) {
-                    if (errDetail) {
-                        hasError = true;
-                        db.run('ROLLBACK');
-                        return res.status(500).json({ error: 'Failed to insert payment details', details: errDetail.message });
-                    }
-                    detailsInserted++;
-                    if (detailsInserted === payment_details.length && !hasError) {
-                        createReceipt(payment_id);
-                    }
-                });
-            });
-
-            function createReceipt(pid) {
-                const receipt_no = 'REC-' + Date.now() + Math.floor(Math.random() * 1000);
-                const insertReceiptSql = `INSERT INTO receipts (payment_id, receipt_no, receipt_date, total_amount, payment_method, remarks) VALUES (?, ?, ?, ?, ?, ?)`;
-                
-                db.run(insertReceiptSql, [pid, receipt_no, payment_date, total_amount, payment_method, remarks], function(errReceipt) {
-                    if (errReceipt) {
-                        db.run('ROLLBACK');
-                        return res.status(500).json({ error: 'Failed to generate receipt', details: errReceipt.message });
-                    }
-                    
+            const handleReceipt = async (pid) => {
+                try {
+                    const receipt_no = await finalizeReceipt(pid, student_id, payment_date, total_amount, payment_method, remarks);
                     db.run('COMMIT');
                     res.status(201).json({ 
                         message: 'Payment processed successfully', 
                         payment_id: pid, 
                         receipt_no: receipt_no 
+                    });
+                } catch (errReceipt) {
+                    db.run('ROLLBACK');
+                    res.status(500).json({ error: 'Failed to generate receipt', details: errReceipt.message });
+                }
+            };
+
+            if (payment_details.length === 0) {
+                handleReceipt(payment_id);
+            } else {
+                payment_details.forEach((detail, index) => {
+                    db.run(insertDetailSql, [payment_id, detail.fee_structure_id, detail.amount], function(errDetail) {
+                        if (errDetail && !hasError) {
+                            hasError = true;
+                            db.run('ROLLBACK');
+                            return res.status(500).json({ error: 'Failed to insert payment details', details: errDetail.message });
+                        }
+                        detailsInserted++;
+                        if (detailsInserted === payment_details.length && !hasError) {
+                            handleReceipt(payment_id);
+                        }
                     });
                 });
             }
@@ -158,18 +174,20 @@ const processMultiplePayments = (req, res) => {
                             completed++;
                             if (completed === payable.length && !failed) {
                                 // Step 5: Generate receipt
-                                const receipt_no = 'REC-' + Date.now() + Math.floor(Math.random() * 1000);
-                                const receiptSql = `INSERT INTO receipts (payment_id, receipt_no, receipt_date, total_amount, payment_method, remarks) VALUES (?, ?, ?, ?, ?, ?)`;
-                                db.run(receiptSql, [payment_id, receipt_no, payment_date, total_amount, payment_method, remarks || ''], (rErr) => {
-                                    if (rErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Failed to generate receipt', details: rErr.message }); }
-                                    db.run('COMMIT');
-                                    res.status(201).json({
-                                        message: `Payment processed for ${payable.length} fee record(s)`,
-                                        payment_id,
-                                        receipt_no,
-                                        total_amount
+                                finalizeReceipt(payment_id, student_id, payment_date, total_amount, payment_method, remarks || '')
+                                    .then(receipt_no => {
+                                        db.run('COMMIT');
+                                        res.status(201).json({
+                                            message: `Payment processed for ${payable.length} fee record(s)`,
+                                            payment_id,
+                                            receipt_no,
+                                            total_amount
+                                        });
+                                    })
+                                    .catch(rErr => {
+                                        db.run('ROLLBACK');
+                                        res.status(500).json({ error: 'Failed to generate receipt', details: rErr.message });
                                     });
-                                });
                             }
                         });
                     });
@@ -234,15 +252,15 @@ const processAdvancePayment = (req, res) => {
                             }
                             completed++;
                             if (completed === payable.length && !failed) {
-                                const receipt_no = 'ADV-' + Date.now() + Math.floor(Math.random() * 1000);
-                                db.run(`INSERT INTO receipts (payment_id, receipt_no, receipt_date, total_amount, payment_method, remarks) VALUES (?, ?, ?, ?, ?, ?)`,
-                                    [payment_id, receipt_no, payment_date, amountToPay, payment_method, remarks || 'Advance Payment'],
-                                    (recErr) => {
-                                        if (recErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Receipt failed' }); }
+                                finalizeReceipt(payment_id, student_id, payment_date, amountToPay, payment_method, remarks || 'Advance Payment')
+                                    .then(receipt_no => {
                                         db.run('COMMIT');
                                         res.status(201).json({ message: 'Advance payment successful', payment_id, receipt_no });
-                                    }
-                                );
+                                    })
+                                    .catch(recErr => {
+                                        db.run('ROLLBACK');
+                                        res.status(500).json({ error: 'Receipt generation failed', details: recErr.message });
+                                    });
                             }
                         });
                     });
@@ -328,19 +346,18 @@ const processSmartAllocation = (req, res) => {
                             completed++;
                             if (completed === distributions.length && !failed) {
                                 // 4. Finalize Receipt
-                                const receipt_no = 'SMP-' + Date.now() + Math.floor(Math.random() * 1000);
-                                db.run(
-                                    `INSERT INTO receipts (payment_id, receipt_no, receipt_date, total_amount, payment_method, remarks) VALUES (?, ?, ?, ?, ?, ?)`,
-                                    [payment_id, receipt_no, payment_date, amountToPay, payment_method, remarks || 'Smart Allocation'],
-                                    (rErr) => {
-                                        if (rErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Receipt generation failed' }); }
+                                finalizeReceipt(payment_id, student_id, payment_date, amountToPay, payment_method, remarks || 'Smart Allocation')
+                                    .then(receipt_no => {
                                         db.run('COMMIT');
                                         res.status(201).json({
                                             message: `Smart allocation successful! ₹${amountToPay.toFixed(2)} distributed over ${distributions.length} record(s).`,
                                             payment_id, receipt_no, amount_paid: amountToPay, records_count: distributions.length
                                         });
-                                    }
-                                );
+                                    })
+                                    .catch(rErr => {
+                                        db.run('ROLLBACK');
+                                        res.status(500).json({ error: 'Receipt generation failed', details: rErr.message });
+                                    });
                             }
                         });
                     });

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { Plus, Search, Receipt, CheckCircle, X, CreditCard, User, Zap } from 'lucide-react'
+import { Plus, Search, Receipt, CheckCircle, X, CreditCard, User, Zap, Eye, Download, Printer } from 'lucide-react'
 import API from '../api/api'
 import toast from 'react-hot-toast'
+import ReceiptModal from '../components/ReceiptModal'
+import { downloadReceiptPdf } from '../api/receiptApi'
 
 const FeePayments = () => {
     const [payments, setPayments] = useState([]);
@@ -15,6 +17,10 @@ const FeePayments = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState('records');
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Receipt Modal State
+    const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+    const [selectedReceiptId, setSelectedReceiptId] = useState(null);
 
     // Bulk selection state
     const [selectedIds, setSelectedIds] = useState([]);
@@ -114,6 +120,11 @@ const FeePayments = () => {
         }
     };
 
+    const handleShowReceipt = (receiptNo) => {
+        setSelectedReceiptId(receiptNo);
+        setIsReceiptModalOpen(true);
+    };
+
     const handleSmartPay = async () => {
         if (!advSelectedStudent) return toast.error('Select a student first');
         if (!smartAmount || parseFloat(smartAmount) <= 0) return toast.error('Enter a valid amount');
@@ -132,6 +143,8 @@ const FeePayments = () => {
             setSmartRemarks('');
             fetchStudentRecords(advSelectedStudent);
             fetchData();
+            // Show receipt modal after success
+            handleShowReceipt(res.data.receipt_no);
         } catch (err) {
             toast.error(err.response?.data?.error || 'Smart allocation failed');
         } finally {
@@ -157,6 +170,8 @@ const FeePayments = () => {
             fetchData();
             setAdvSelectedIds([]);
             setAdvCustomAmount('');
+            // Show receipt modal after success
+            handleShowReceipt(res.data.receipt_no);
         } catch (err) {
             toast.error(err.response?.data?.error || 'Advance payment failed');
         } finally {
@@ -180,11 +195,13 @@ const FeePayments = () => {
             }]
         };
         try {
-            await API.post('/payments', payload);
+            const res = await API.post('/payments', payload);
             toast.success("Payment recorded successfully!");
             setIsModalOpen(false);
             setFormData({ student_id: '', fee_structure_id: '', payment_date: new Date().toISOString().split('T')[0], total_amount: '', payment_method: 'cash', remarks: '' });
             fetchData();
+            // Show receipt modal after success
+            handleShowReceipt(res.data.receipt_no);
         } catch (err) {
             toast.error(err.response?.data?.error || "Failed to record payment");
         }
@@ -230,10 +247,22 @@ const FeePayments = () => {
             toast.success(`✅ ${res.data.message} | Receipt: ${res.data.receipt_no}`);
             setSelectedIds([]);
             fetchData();
+            // Show receipt modal after success
+            handleShowReceipt(res.data.receipt_no);
         } catch (err) {
             toast.error(err.response?.data?.error || "Bulk payment failed");
         } finally {
             setIsBulkPaying(false);
+        }
+    };
+
+    const handleDownloadPDF = async (pay) => {
+        try {
+            // If we don't have the receipt ID but have receipt_no, we can use receipt_no
+            await downloadReceiptPdf(pay.receipt_no || pay.id, pay.receipt_no || `REC-${pay.id}`);
+            toast.success("Downloading PDF...");
+        } catch (err) {
+            toast.error("Failed to download PDF");
         }
     };
 
@@ -644,11 +673,12 @@ const FeePayments = () => {
                                     <th className="px-6 py-4 font-medium">Date</th>
                                     <th className="px-6 py-4 font-medium">Method</th>
                                     <th className="px-6 py-4 font-medium text-right">Amount (₹)</th>
+                                    <th className="px-6 py-4 font-medium text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-800/50">
                                 {filteredPayments.length > 0 ? filteredPayments.map((pay) => (
-                                    <tr key={pay.id} className="hover:bg-white/5 transition-colors">
+                                    <tr key={pay.id} className="hover:bg-white/5 transition-colors group">
                                         <td className="px-6 py-3 font-medium text-pink-400">{pay.receipt_no || `Pending-${pay.id}`}</td>
                                         <td className="px-6 py-3 text-white">{pay.student_name || getStudentName(pay.student_id)}</td>
                                         <td className="px-6 py-3 text-gray-400">{pay.payment_date}</td>
@@ -656,10 +686,28 @@ const FeePayments = () => {
                                             <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-gray-800 border border-gray-700 uppercase">{pay.payment_method || 'Unknown'}</span>
                                         </td>
                                         <td className="px-6 py-3 text-right font-bold text-emerald-400">₹{pay.total_amount?.toLocaleString()}</td>
+                                        <td className="px-6 py-3 text-center">
+                                            <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={() => handleShowReceipt(pay.receipt_no || pay.id)}
+                                                    className="p-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all"
+                                                    title="View Receipt"
+                                                >
+                                                    <Eye size={14} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDownloadPDF(pay)}
+                                                    className="p-1.5 bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 rounded-lg transition-all"
+                                                    title="Download PDF"
+                                                >
+                                                    <Download size={14} />
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">No payments found.</td>
+                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">No payments found.</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -718,8 +766,10 @@ const FeePayments = () => {
                                             className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-white outline-none focus:border-violet-500 transition-all appearance-none"
                                         >
                                             <option value="cash">Cash</option>
-                                            <option value="online">Online</option>
-                                            <option value="check">Check</option>
+                                            <option value="upi">UPI</option>
+                                            <option value="card">Card</option>
+                                            <option value="bank_transfer">Bank Transfer</option>
+                                            <option value="cheque">Cheque</option>
                                         </select>
                                     </div>
                                 </div>
@@ -809,6 +859,13 @@ const FeePayments = () => {
                     </div>
                 </>
             )}
+
+            {/* Receipt Modal */}
+            <ReceiptModal 
+                isOpen={isReceiptModalOpen} 
+                onClose={() => setIsReceiptModalOpen(false)} 
+                receiptId={selectedReceiptId} 
+            />
 
             <style>{`
                 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }

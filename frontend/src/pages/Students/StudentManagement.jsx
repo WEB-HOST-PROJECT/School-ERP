@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Search, Eye, Pencil, Trash2, X } from 'lucide-react'
+import { Search, Eye, Pencil, Trash2, X, Receipt, Download } from 'lucide-react'
 import API from '../../api/api'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
+import { getStudentReceipts, downloadReceiptPdf } from '../../api/receiptApi'
+import ReceiptModal from '../../components/ReceiptModal'
 
 const StudentManagement = () => {
     const [students, setStudents] = useState([])
@@ -12,6 +14,10 @@ const StudentManagement = () => {
 
     // Modal states
     const [viewStudent, setViewStudent] = useState(null)
+    const [studentReceipts, setStudentReceipts] = useState([])
+    const [loadingReceipts, setLoadingReceipts] = useState(false)
+    const [selectedReceiptId, setSelectedReceiptId] = useState(null)
+    const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false)
 
     const fetchStudents = () => {
         API.get("/students")
@@ -23,6 +29,24 @@ const StudentManagement = () => {
         fetchStudents()
     }, [])
 
+    useEffect(() => {
+        if (viewStudent) {
+            fetchReceipts(viewStudent.id)
+        }
+    }, [viewStudent])
+
+    const fetchReceipts = async (studentId) => {
+        setLoadingReceipts(true)
+        try {
+            const res = await getStudentReceipts(studentId)
+            setStudentReceipts(res.data)
+        } catch (err) {
+            console.error(err)
+        } finally {
+            setLoadingReceipts(false)
+        }
+    }
+
     const handleDelete = async (id, name) => {
         if (window.confirm(`Are you sure you want to permanently delete student: ${name}?`)) {
             try {
@@ -33,6 +57,20 @@ const StudentManagement = () => {
                 console.error(err)
                 toast.error('Failed to delete student')
             }
+        }
+    }
+
+    const handleViewReceipt = (receiptId) => {
+        setSelectedReceiptId(receiptId)
+        setIsReceiptModalOpen(true)
+    }
+
+    const handleDownload = async (pay) => {
+        try {
+            await downloadReceiptPdf(pay.receipt_no || pay.id, pay.receipt_no || `REC-${pay.id}`)
+            toast.success("Downloading PDF...")
+        } catch (err) {
+            toast.error("Failed to download PDF")
         }
     }
 
@@ -120,7 +158,7 @@ const StudentManagement = () => {
 
             {/* View Details Slide-over Panel */}
             {viewStudent && (
-                <div className="absolute top-0 right-0 h-full w-96 bg-gray-900 border-l border-gray-800 shadow-2xl z-20 flex flex-col slide-in-right">
+                <div className="absolute top-0 right-0 h-full w-[450px] bg-gray-900 border-l border-gray-800 shadow-2xl z-20 flex flex-col slide-in-right">
                     <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 backdrop-blur-md">
                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
                             <Eye className="text-blue-500" size={18} /> Student Details
@@ -129,7 +167,7 @@ const StudentManagement = () => {
                             <X size={18} />
                         </button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                         <div className="text-center pb-4 border-b border-gray-800">
                             <div className="w-20 h-20 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-3xl font-bold mx-auto mb-3">
                                 {viewStudent.name.charAt(0).toUpperCase()}
@@ -140,10 +178,10 @@ const StudentManagement = () => {
                             </span>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             <div>
-                                <h4 className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Personal</h4>
-                                <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                                <h4 className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3">Personal & Academic</h4>
+                                <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm bg-white/5 p-4 rounded-2xl border border-gray-800">
                                     <div className="text-gray-400">Status</div>
                                     <div>
                                         <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${
@@ -157,34 +195,71 @@ const StudentManagement = () => {
                                     </div>
                                     <div className="text-gray-400">Gender</div><div className="text-white capitalize">{viewStudent.gender || '-'}</div>
                                     <div className="text-gray-400">DOB</div><div className="text-white">{viewStudent.dob || '-'}</div>
-                                    <div className="text-gray-400">Category</div><div className="text-white capitalize">{viewStudent.category || '-'}</div>
                                     <div className="text-gray-400">Contact</div><div className="text-white">{viewStudent.contact_no || '-'}</div>
-                                    <div className="text-gray-400">Email</div><div className="text-white lowercase">{viewStudent.email || '-'}</div>
                                     <div className="text-gray-400">Aadhar</div><div className="text-white">{viewStudent.aadhar_no || '-'}</div>
                                 </div>
                             </div>
 
+                            {/* Fee Receipts Tab/Section */}
                             <div>
-                                <h4 className="text-xs uppercase tracking-wider text-pink-500 font-semibold mb-2">Parents</h4>
-                                <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
-                                    <div className="text-gray-400">Father</div><div className="text-white">{viewStudent.father_name || '-'}</div>
-                                    <div className="text-gray-400">Mother</div><div className="text-white">{viewStudent.mother_name || '-'}</div>
+                                <h4 className="text-xs uppercase tracking-wider text-pink-500 font-semibold mb-3 flex items-center gap-2">
+                                    <Receipt size={14} /> Fee Receipts History
+                                </h4>
+                                <div className="bg-white/5 rounded-2xl border border-gray-800 overflow-hidden">
+                                    {loadingReceipts ? (
+                                        <p className="p-4 text-center text-xs text-gray-500">Loading history...</p>
+                                    ) : studentReceipts.length > 0 ? (
+                                        <table className="w-full text-left text-xs">
+                                            <thead className="bg-gray-800/50">
+                                                <tr className="text-gray-500">
+                                                    <th className="px-4 py-2 font-medium">Receipt</th>
+                                                    <th className="px-4 py-2 font-medium">Date</th>
+                                                    <th className="px-4 py-2 font-medium text-right">Amount</th>
+                                                    <th className="px-4 py-2 font-medium text-center">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-800">
+                                                {studentReceipts.map(rec => (
+                                                    <tr key={rec.id} className="hover:bg-white/5">
+                                                        <td className="px-4 py-2 font-medium text-gray-300">{rec.receipt_no}</td>
+                                                        <td className="px-4 py-2 text-gray-500">{rec.receipt_date}</td>
+                                                        <td className="px-4 py-2 text-right font-bold text-emerald-400">₹{rec.total_amount.toLocaleString()}</td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <div className="flex justify-center gap-1">
+                                                                <button 
+                                                                    onClick={() => handleViewReceipt(rec.receipt_no)}
+                                                                    className="p-1 text-blue-400 hover:bg-blue-500/20 rounded"
+                                                                >
+                                                                    <Eye size={12} />
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDownload(rec)}
+                                                                    className="p-1 text-pink-400 hover:bg-pink-500/20 rounded"
+                                                                >
+                                                                    <Download size={12} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    ) : (
+                                        <p className="p-8 text-center text-gray-600 text-xs italic">No fee receipts found for this student.</p>
+                                    )}
                                 </div>
                             </div>
 
                             <div>
-                                <h4 className="text-xs uppercase tracking-wider text-violet-500 font-semibold mb-2">Institutional</h4>
-                                <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
-                                    <div className="text-gray-400">PEN No</div><div className="text-white">{viewStudent.pen_no || '-'}</div>
-                                    <div className="text-gray-400">House</div><div className="text-white capitalize">{viewStudent.house_name || '-'}</div>
-                                    <div className="text-gray-400">Cert.</div><div className="text-white">{viewStudent.certificate || '-'}</div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h4 className="text-xs uppercase tracking-wider text-emerald-500 font-semibold mb-2">Address</h4>
-                                <div className="text-sm text-white bg-white/5 p-3 rounded-xl border border-gray-800">
-                                    {viewStudent.address || 'No address provided'}
+                                <h4 className="text-xs uppercase tracking-wider text-violet-500 font-semibold mb-3">Family & Address</h4>
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm bg-white/5 p-4 rounded-2xl border border-gray-800">
+                                        <div className="text-gray-400">Father</div><div className="text-white">{viewStudent.father_name || '-'}</div>
+                                        <div className="text-gray-400">Mother</div><div className="text-white">{viewStudent.mother_name || '-'}</div>
+                                    </div>
+                                    <div className="text-sm text-white bg-white/5 p-4 rounded-2xl border border-gray-800 italic">
+                                        {viewStudent.address || 'No address provided'}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -192,7 +267,11 @@ const StudentManagement = () => {
                 </div>
             )}
 
-            {/* Edit Route uses separate page instead of modal */}
+            <ReceiptModal 
+                isOpen={isReceiptModalOpen}
+                onClose={() => setIsReceiptModalOpen(false)}
+                receiptId={selectedReceiptId}
+            />
 
             <style jsx>{`
                 .slide-in-right { animation: slideIn 0.3s ease-out forwards; }

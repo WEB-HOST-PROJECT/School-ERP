@@ -54,6 +54,7 @@ app.use('/payments', require('./routes/paymentRoutes'))
 app.use('/transport', require('./routes/transportRoutes'))
 app.use('/student-fees', require('./routes/studentFeeRoutes'))
 app.use('/fee-reports', require('./routes/feeReportRoutes'))
+app.use('/api/receipts', require('./routes/receiptRoutes'))
 
 // 404 Handler
 app.use((req, res, next) => {
